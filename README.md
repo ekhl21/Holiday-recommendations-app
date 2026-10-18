@@ -6,6 +6,7 @@
 
 #draft 1 - interface design made, globe view with countries dotted around, search option.
 #when a country is clicked, a bar appears with space for more information to go 
-# draft 1 link and code uploaded: https://claude.ai/artifact/8o6cShV4z9hEtSpYmvyQJb
+#draft 1 link and code uploaded: https://claude.ai/artifact/806cShV4z9hEtSpYmvyQJb
+
 
 
