@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wayfarer – Explore the world</title>
+<style>
+:root{--bg:#f3f5f9;--fg:#14213d;--muted:#5b6785;--card:#ffffffcc;--line:#d5dbe8;--accent:#e4572e;--ocean:#dfe8f7;--dot:#7d93bd;--grat:#c3cfe6;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#070b16;--fg:#eef2fb;--muted:#9aa7c7;--card:#121a2fcc;--line:#26314f;--accent:#ff7a4d;--ocean:#0e1730;--dot:#4f6aa8;--grat:#1b2745}}
+:root[data-theme="dark"]{--bg:#070b16;--fg:#eef2fb;--muted:#9aa7c7;--card:#121a2fcc;--line:#26314f;--accent:#ff7a4d;--ocean:#0e1730;--dot:#4f6aa8;--grat:#1b2745}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{background:var(--bg);color:var(--fg);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;overflow:hidden}
+#app{position:relative;height:100%;width:100%}
+canvas{position:absolute;inset:0;width:100%;height:100%;cursor:grab;touch-action:none}
+canvas:active{cursor:grabbing}
+header{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:16px 24px;z-index:3;pointer-events:none}
+header>*{pointer-events:auto}
+.logo{font-weight:700;font-size:20px;letter-spacing:-.02em}.logo span{color:var(--accent)}
+nav{display:flex;gap:20px;font-size:14px;color:var(--muted)}
+nav a{color:inherit;text-decoration:none}
+.hero{position:absolute;top:76px;left:50%;transform:translateX(-50%);width:min(560px,calc(100% - 32px));z-index:3;text-align:center}
+h1{margin:0 0 6px;font-size:clamp(24px,4vw,38px);letter-spacing:-.03em;line-height:1.1}
+.sub{margin:0 0 16px;color:var(--muted);font-size:15px}
+.search{position:relative}
+.search input{width:100%;padding:14px 18px 14px 46px;border-radius:999px;border:1px solid var(--line);background:var(--card);backdrop-filter:blur(12px);color:var(--fg);font-size:16px;outline:none;box-shadow:0 8px 30px #0002}
+.search input:focus{border-color:var(--accent)}
+.search svg{position:absolute;left:16px;top:50%;transform:translateY(-50%);width:20px;height:20px;stroke:var(--muted);fill:none;stroke-width:2}
+#results{position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--card);backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:16px;overflow:hidden;text-align:left;display:none}
+#results button{display:flex;justify-content:space-between;width:100%;padding:11px 18px;border:0;background:none;color:var(--fg);font-size:15px;cursor:pointer;text-align:left}
+#results button:hover,#results button.on{background:var(--line)}
+#results small{color:var(--muted)}
+.chips{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:999px;padding:6px 14px;font-size:13px;cursor:pointer}
+.chip:hover{border-color:var(--accent)}
+.hint{position:absolute;bottom:calc(18px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);font-size:13px;color:var(--muted);z-index:2;white-space:nowrap}
+#tip{position:absolute;z-index:4;pointer-events:none;padding:4px 10px;border-radius:8px;background:var(--fg);color:var(--bg);font-size:12px;display:none}
+#panel{position:absolute;z-index:5;top:0;right:0;bottom:0;width:min(380px,100%);padding:84px 24px 24px;background:var(--card);backdrop-filter:blur(18px);border-left:1px solid var(--line);transform:translateX(105%);transition:transform .5s ease;overflow-y:auto}
+#panel.open{transform:none}
+#panel h2{margin:0;font-size:30px;letter-spacing:-.02em}
+#panel p{color:var(--muted);margin:6px 0 18px}
+.tile{border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px}
+.tile b{display:block;font-size:13px;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.bar{height:8px;border-radius:4px;background:var(--line);margin:6px 0}
+.bar.s{width:60%}
+#back{margin-top:6px;border:1px solid var(--line);background:none;color:var(--fg);padding:10px 18px;border-radius:999px;cursor:pointer;font-size:14px}
+@media(max-width:640px){nav{display:none}#panel{top:auto;height:55%;width:100%;border-left:0;border-top:1px solid var(--line);transform:translateY(105%);padding-top:24px}}
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="c"></canvas>
+  <header>
+    <div class="logo">Way<span>farer</span></div>
+    <nav><a href="#">Explore</a><a href="#">Trending</a><a href="#">Saved</a><a href="#">Sign in</a></nav>
+  </header>
+  <div class="hero">
+    <h1>Where to next?</h1>
+    <p class="sub">Spin the globe or search for a country to see tailored travel recommendations.</p>
+    <div class="search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+      <input id="q" type="text" placeholder="Search a country…" autocomplete="off" aria-label="Search countries">
+      <div id="results"></div>
+    </div>
+    <div class="chips" id="chips"></div>
+  </div>
+  <div class="hint">Drag to rotate · Scroll or pinch to zoom · Click a pin to explore</div>
+  <div id="tip"></div>
+  <aside id="panel" aria-live="polite">
+    <h2 id="pn"></h2><p id="pt"></p>
+    <div class="tile"><b>Top sights</b><div class="bar"></div><div class="bar s"></div></div>
+    <div class="tile"><b>Best time to visit</b><div class="bar"></div><div class="bar s"></div></div>
+    <div class="tile"><b>Food &amp; culture</b><div class="bar"></div><div class="bar s"></div></div>
+    <div class="tile"><b>Getting around</b><div class="bar"></div><div class="bar s"></div></div>
+    <button id="back">← Back to globe</button>
+  </aside>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script>
+const C=[["Japan",36,138,"Ancient temples meet neon cities"],["France",46,2,"Art, cuisine and countryside"],["Italy",42.5,12.5,"History on every corner"],["Spain",40,-3.7,"Sun, tapas and fiesta"],["United Kingdom",54,-2,"Castles, pubs and moors"],["Iceland",64.9,-18.5,"Volcanoes, glaciers, geysers"],["Egypt",26,30,"Pyramids and the Nile"],["Morocco",32,-6,"Souks, deserts and mountains"],["South Africa",-30,25,"Safari and coastal drives"],["Kenya",0,38,"Savannah and the Great Migration"],["India",22,79,"Color, spice and spirituality"],["Thailand",15,101,"Beaches, temples, street food"],["Vietnam",16,107,"Bay cruises and bustling cities"],["Indonesia",-2,115,"Thousands of islands to explore"],["China",35,103,"Great Wall to futuristic skylines"],["Australia",-25,134,"Outback, reefs and surf"],["New Zealand",-41,174,"Adventure at the end of the world"],["United States",39,-98,"National parks and city breaks"],["Canada",58,-100,"Wilderness and Rocky Mountains"],["Mexico",23,-102,"Ruins, beaches and tacos"],["Peru",-9,-75,"Machu Picchu and the Andes"],["Brazil",-10,-52,"Rainforest, rhythm, Rio"],["Argentina",-35,-65,"Patagonia, tango and wine"],["Greece",39,22,"Islands and ancient ruins"],["Turkey",39,35,"Where East meets West"],["Norway",62,10,"Fjords and northern lights"]];
+const shapes=[[[-168,66],[-140,70],[-95,72],[-65,62],[-55,48],[-70,42],[-80,25],[-97,18],[-84,10],[-78,8],[-105,20],[-118,32],[-125,42],[-135,58]],[[-55,60],[-45,60],[-20,70],[-20,82],[-60,82],[-70,76]],[[-78,10],[-60,10],[-35,-6],[-40,-22],[-55,-35],[-65,-55],[-74,-50],[-72,-20],[-81,-5]],[[-10,36],[-9,43],[-2,48],[5,52],[10,58],[20,70],[40,68],[40,45],[28,41],[22,36],[10,38]],[[-17,21],[-10,35],[10,37],[32,31],[43,12],[51,12],[40,-15],[33,-27],[20,-35],[12,-17],[9,4],[-8,5],[-17,14]],[[40,68],[100,78],[140,72],[170,66],[140,50],[130,35],[122,30],[120,22],[108,10],[100,2],[98,15],[90,22],[80,8],[72,20],[58,25],[48,30],[36,36],[28,41],[40,45]],[[114,-22],[130,-12],[142,-11],[153,-26],[147,-39],[135,-35],[115,-34]],[[-6,50],[2,51],[0,58],[-6,58]],[[130,32],[141,36],[142,44],[138,38]],[[95,5],[120,-1],[140,-3],[125,-9],[105,-6]],[[166,-46],[174,-41],[178,-38],[172,-34]]];
+const land=[];
+for(let la=-80;la<=84;la+=3)for(let lo=-180;lo<180;lo+=3)if(shapes.some(s=>d3.polygonContains(s,[lo,la])))land.push([lo,la]);
+const cv=document.getElementById('c'),ctx=cv.getContext('2d'),tip=document.getElementById('tip');
+const proj=d3.geoOrthographic().clipAngle(90).precision(.5),path=d3.geoPath(proj,ctx),grat=d3.geoGraticule10();
+let W,H,R,dpr,rot=[-10,-25],k=1,sel=null,idle=true,hover=null,flying=false,col={};
+function readCol(){const s=getComputedStyle(document.documentElement);['ocean','dot','grat','accent','fg','line'].forEach(n=>col[n]=s.getPropertyValue('--'+n).trim())}
+function size(){dpr=devicePixelRatio||1;W=cv.clientWidth;H=cv.clientHeight;cv.width=W*dpr;cv.height=H*dpr;R=Math.min(W,H)*.36}
+function draw(){
+  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  const off=sel?(W>640?-190:0):0, yo=H*(W>640?.56:.62)-(sel&&W<=640?H*.18:0);
+  proj.scale(R*k).translate([W/2+off,yo]).rotate([rot[0],rot[1],0]);
+  const ctr=[-rot[0],-rot[1]];
+  ctx.beginPath();path({type:'Sphere'});ctx.fillStyle=col.ocean;ctx.fill();
+  ctx.beginPath();path(grat);ctx.strokeStyle=col.grat;ctx.lineWidth=.6;ctx.stroke();
+  ctx.fillStyle=col.dot;const d=Math.max(1.6,R*k/115);
+  for(const p of land){if(d3.geoDistance(p,ctr)>1.5)continue;const q=proj(p);ctx.fillRect(q[0]-d/2,q[1]-d/2,d,d)}
+  ctx.beginPath();path({type:'Sphere'});ctx.strokeStyle=col.line;ctx.lineWidth=1.5;ctx.stroke();
+  for(const c of C){if(d3.geoDistance([c[2],c[1]],ctr)>1.45)continue;const q=proj([c[2],c[1]]),on=c===sel||c===hover;
+    ctx.beginPath();ctx.arc(q[0],q[1],on?7:4.5,0,7);ctx.fillStyle=col.accent;ctx.fill();
+    if(on){ctx.beginPath();ctx.arc(q[0],q[1],13,0,7);ctx.strokeStyle=col.accent;ctx.lineWidth=2;ctx.stroke()}}
+}
+function loop(){if(idle&&!sel&&!flying)rot[0]+=.12;draw();requestAnimationFrame(loop)}
+function fly(c){
+  sel=c;idle=false;flying=true;showPanel(c);
+  const a=rot.slice(),ak=k,bt=[-c[2],-c[1]],bk=3.4;
+  let dl=bt[0]-a[0];dl=((dl+540)%360)-180;
+  const t0=performance.now(),T=1400;
+  (function step(t){const e=d3.easeCubicInOut(Math.min(1,(t-t0)/T));
+    rot=[a[0]+dl*e,a[1]+(bt[1]-a[1])*e];k=ak+(bk-ak)*e;
+    if(e<1)requestAnimationFrame(step);else flying=false})(t0);
+}
+function back(){sel=null;flying=true;document.getElementById('panel').classList.remove('open');
+  const ak=k,t0=performance.now();(function step(t){const e=d3.easeCubicInOut(Math.min(1,(t-t0)/900));k=ak+(1-ak)*e;if(e<1)requestAnimationFrame(step);else{flying=false;idle=true}})(t0)}
+function showPanel(c){pn.textContent=c[0];pt.textContent=c[3];panel.classList.add('open');q.value=c[0];results.style.display='none'}
+const pn=document.getElementById('pn'),pt=document.getElementById('pt'),panel=document.getElementById('panel'),q=document.getElementById('q'),results=document.getElementById('results');
+document.getElementById('back').onclick=back;
+// drag + zoom
+let drag=null;
+cv.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,r:rot.slice(),moved:false};idle=false;cv.setPointerCapture(e.pointerId)});
+cv.addEventListener('pointermove',e=>{
+  if(drag&&!flying){const f=.35/k,dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>3)drag.moved=true;
+    rot=[drag.r[0]+dx*f,Math.max(-85,Math.min(85,drag.r[1]-dy*f))]}
+  const h=pick(e);hover=h;cv.style.cursor=h?'pointer':(drag?'grabbing':'grab');
+  if(h){tip.textContent=h[0];tip.style.display='block';tip.style.left=e.clientX+14+'px';tip.style.top=e.clientY+14+'px'}else tip.style.display='none'});
+cv.addEventListener('pointerup',e=>{if(drag&&!drag.moved){const h=pick(e);if(h)fly(h)}drag=null;if(!sel)setTimeout(()=>{if(!drag)idle=true},2500)});
+cv.addEventListener('wheel',e=>{e.preventDefault();k=Math.max(.8,Math.min(6,k*(e.deltaY<0?1.1:.9)))},{passive:false});
+function pick(e){const r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top,ctr=[-rot[0],-rot[1]];let best=null,bd=14;
+  for(const c of C){if(d3.geoDistance([c[2],c[1]],ctr)>1.4)continue;const p=proj([c[2],c[1]]),d=Math.hypot(p[0]-x,p[1]-y);if(d<bd){bd=d;best=c}}return best}
+// search
+let items=[],idx=0;
+function render(){results.innerHTML='';items.forEach((c,i)=>{const b=document.createElement('button');b.className=i===idx?'on':'';b.innerHTML='<span>'+c[0]+'</span><small>'+c[3]+'</small>';b.onclick=()=>fly(c);results.appendChild(b)});results.style.display=items.length?'block':'none'}
+q.addEventListener('input',()=>{const v=q.value.trim().toLowerCase();items=v?C.filter(c=>c[0].toLowerCase().includes(v)).slice(0,6):[];idx=0;render()});
+q.addEventListener('keydown',e=>{if(e.key==='ArrowDown'){idx=Math.min(items.length-1,idx+1);render()}else if(e.key==='ArrowUp'){idx=Math.max(0,idx-1);render()}else if(e.key==='Enter'&&items[idx])fly(items[idx])});
+document.addEventListener('click',e=>{if(!e.target.closest('.search'))results.style.display='none'});
+['Japan','Italy','Peru','Iceland','Australia'].forEach(n=>{const c=C.find(x=>x[0]===n),b=document.createElement('button');b.className='chip';b.textContent=n;b.onclick=()=>fly(c);document.getElementById('chips').appendChild(b)});
+addEventListener('resize',size);matchMedia('(prefers-color-scheme: dark)').addEventListener('change',readCol);
+readCol();size();loop();
+</script>
+</body>
+</html>
